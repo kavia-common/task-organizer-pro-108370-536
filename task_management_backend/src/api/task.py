@@ -1,6 +1,6 @@
-from fastapi import APIRouter, HTTPException, Query, status
-from typing import Optional, Dict
-from datetime import datetime, date
+from fastapi import APIRouter, Query, status, Depends
+from typing import Optional
+from datetime import date
 from src.api.models import (
     TaskCreate,
     TaskUpdate,
@@ -8,18 +8,14 @@ from src.api.models import (
     TaskListResponse,
     MessageResponse,
 )
+from src.api.db import get_db_session
+from sqlalchemy.ext.asyncio import AsyncSession
 
 router = APIRouter(prefix="/tasks", tags=["Tasks"])
 
-# FAKE in-memory storage
-_fake_task_db: Dict[int, Dict] = {}
-_initial_task_id = 1
-
-def _create_fake_task_id():
-    global _initial_task_id
-    xid = _initial_task_id
-    _initial_task_id += 1
-    return xid
+# NOTE: All "in-memory" logic removed. DB session is now required via Depends(get_db_session).
+# Actual CRUD logic to be implemented in the next step.
+# Here, we just provide placeholder skeletons for DB session use.
 
 # PUBLIC_INTERFACE
 @router.post(
@@ -28,23 +24,12 @@ def _create_fake_task_id():
     response_model=TaskRead,
     status_code=status.HTTP_201_CREATED
 )
-def create_task(task_in: TaskCreate):
-    """Create a new task. (in-memory only, for demo purpose)"""
-    task_id = _create_fake_task_id()
-    now = datetime.utcnow()
-    data = {
-        "id": task_id,
-        "title": task_in.title,
-        "description": task_in.description or "",
-        "due_date": task_in.due_date,
-        "status": task_in.status,
-        "creator_id": 1,  # Demo static creator
-        "assignee_id": task_in.assignee_id,
-        "created_at": now,
-        "updated_at": now,
-    }
-    _fake_task_db[task_id] = data
-    return TaskRead(**data)
+async def create_task(
+    task_in: TaskCreate,
+    db: AsyncSession = Depends(get_db_session)
+):
+    """Create a new task (DB-backed, implementation pending)."""
+    raise NotImplementedError("DB logic not yet implemented.")
 
 # PUBLIC_INTERFACE
 @router.get(
@@ -52,20 +37,14 @@ def create_task(task_in: TaskCreate):
     summary="List tasks (all or filtered)",
     response_model=TaskListResponse
 )
-def list_tasks(
+async def list_tasks(
     status: Optional[str] = Query(None, description="Filter by status"),
     assignee_id: Optional[int] = Query(None, description="Filter by assignee id"),
-    due_before: Optional[date] = Query(None, description="Tasks due before this date")
+    due_before: Optional[date] = Query(None, description="Tasks due before this date"),
+    db: AsyncSession = Depends(get_db_session)
 ):
-    """List all tasks with optional filtering."""
-    filtered = list(_fake_task_db.values())
-    if status:
-        filtered = [t for t in filtered if t["status"] == status]
-    if assignee_id:
-        filtered = [t for t in filtered if t["assignee_id"] == assignee_id]
-    if due_before:
-        filtered = [t for t in filtered if t["due_date"] and t["due_date"] < due_before]
-    return TaskListResponse(tasks=[TaskRead(**task) for task in filtered], total=len(filtered))
+    """List all tasks with optional filtering (DB-backed, implementation pending)."""
+    raise NotImplementedError("DB logic not yet implemented.")
 
 # PUBLIC_INTERFACE
 @router.get(
@@ -73,12 +52,12 @@ def list_tasks(
     summary="Get task by id",
     response_model=TaskRead
 )
-def get_task(task_id: int):
-    """Get a single task by id."""
-    task = _fake_task_db.get(task_id)
-    if not task:
-        raise HTTPException(status_code=404, detail="Task not found")
-    return TaskRead(**task)
+async def get_task(
+    task_id: int,
+    db: AsyncSession = Depends(get_db_session)
+):
+    """Get a single task by id (DB-backed, implementation pending)."""
+    raise NotImplementedError("DB logic not yet implemented.")
 
 # PUBLIC_INTERFACE
 @router.put(
@@ -86,16 +65,13 @@ def get_task(task_id: int):
     summary="Update a task",
     response_model=TaskRead
 )
-def update_task(task_id: int, task_in: TaskUpdate):
-    """Update task fields by id."""
-    task = _fake_task_db.get(task_id)
-    if not task:
-        raise HTTPException(status_code=404, detail="Task not found")
-    for field, value in task_in.dict(exclude_unset=True).items():
-        if value is not None:
-            task[field] = value
-    task["updated_at"] = datetime.utcnow()
-    return TaskRead(**task)
+async def update_task(
+    task_id: int,
+    task_in: TaskUpdate,
+    db: AsyncSession = Depends(get_db_session)
+):
+    """Update task fields by id (DB-backed, implementation pending)."""
+    raise NotImplementedError("DB logic not yet implemented.")
 
 # PUBLIC_INTERFACE
 @router.delete(
@@ -103,12 +79,12 @@ def update_task(task_id: int, task_in: TaskUpdate):
     summary="Delete a task",
     response_model=MessageResponse
 )
-def delete_task(task_id: int):
-    """Delete a task by id."""
-    if task_id not in _fake_task_db:
-        raise HTTPException(status_code=404, detail="Task not found")
-    del _fake_task_db[task_id]
-    return MessageResponse(message="Task deleted successfully.")
+async def delete_task(
+    task_id: int,
+    db: AsyncSession = Depends(get_db_session)
+):
+    """Delete a task by id (DB-backed, implementation pending)."""
+    raise NotImplementedError("DB logic not yet implemented.")
 
 # PUBLIC_INTERFACE
 @router.post(
@@ -116,14 +92,13 @@ def delete_task(task_id: int):
     summary="Assign task to a user",
     response_model=TaskRead
 )
-def assign_task(task_id: int, assignee_id: int):
-    """Assign a task to a user (placeholder logic)"""
-    task = _fake_task_db.get(task_id)
-    if not task:
-        raise HTTPException(status_code=404, detail="Task not found")
-    task["assignee_id"] = assignee_id
-    task["updated_at"] = datetime.utcnow()
-    return TaskRead(**task)
+async def assign_task(
+    task_id: int,
+    assignee_id: int,
+    db: AsyncSession = Depends(get_db_session)
+):
+    """Assign a task to a user (DB-backed, implementation pending)."""
+    raise NotImplementedError("DB logic not yet implemented.")
 
 # PUBLIC_INTERFACE
 @router.post(
@@ -131,14 +106,13 @@ def assign_task(task_id: int, assignee_id: int):
     summary="Update status of a task",
     response_model=TaskRead
 )
-def update_status(task_id: int, new_status: str):
-    """Update the status field (todo|in_progress|done) of a task."""
-    task = _fake_task_db.get(task_id)
-    if not task:
-        raise HTTPException(status_code=404, detail="Task not found")
-    task["status"] = new_status
-    task["updated_at"] = datetime.utcnow()
-    return TaskRead(**task)
+async def update_status(
+    task_id: int,
+    new_status: str,
+    db: AsyncSession = Depends(get_db_session)
+):
+    """Update the status field (todo|in_progress|done) of a task (DB-backed, implementation pending)."""
+    raise NotImplementedError("DB logic not yet implemented.")
 
 # PUBLIC_INTERFACE
 @router.get(
@@ -146,8 +120,8 @@ def update_status(task_id: int, new_status: str):
     summary="Get tasks due today",
     response_model=TaskListResponse
 )
-def get_due_today():
-    """Return a list of tasks due today (due date reminders placeholder)."""
-    today = datetime.utcnow().date()
-    due_tasks = [t for t in _fake_task_db.values() if t["due_date"] == today]
-    return TaskListResponse(tasks=[TaskRead(**task) for task in due_tasks], total=len(due_tasks))
+async def get_due_today(
+    db: AsyncSession = Depends(get_db_session)
+):
+    """Return a list of tasks due today (DB-backed, implementation pending)."""
+    raise NotImplementedError("DB logic not yet implemented.")
