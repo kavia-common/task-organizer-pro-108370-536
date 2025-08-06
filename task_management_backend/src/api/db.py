@@ -14,7 +14,18 @@ DB_URL = os.getenv('POSTGRES_URL')
 if not DB_URL:
     raise RuntimeError("POSTGRES_URL environment variable is not set.")
 
-# Async engine for SQLAlchemy
+# NOTE:
+# - For ASYNC SQLAlchemy usage you MUST use 'postgresql+asyncpg://...' (asyncpg driver).
+# - If using a SYNC SQLAlchemy engine, use 'postgresql+psycopg2://...' (psycopg2 driver).
+# - This engine is for async FastAPI endpoints (all in this project).
+# - psycopg2 should NOT be used with create_async_engine or AsyncSession.
+#
+# If you get an error about "psycopg2 is not async", check your POSTGRES_URL:
+#   It MUST start with:   postgresql+asyncpg://    (not ...psycopg2://)
+#
+# Typical .env value example:
+# POSTGRES_URL=postgresql+asyncpg://user:password@localhost:5432/taskdb
+
 engine = create_async_engine(DB_URL, pool_pre_ping=True)
 
 # Async session factory for FastAPI dependency injection
