@@ -8,7 +8,18 @@ from dotenv import load_dotenv
 
 # Load environment variables from .env if present
 load_dotenv()
-
+# IMPORTANT:
+# DB_URL should be set via the POSTGRES_URL environment variable.
+# For async SQLAlchemy operations (as used in this FastAPI backend), the URL
+# MUST begin with 'postgresql+asyncpg://...' to ensure async capability via the asyncpg driver.
+# Examples:
+#   postgresql+asyncpg://user:password@localhost:5432/mydatabase
+#
+# The 'asyncpg' driver is mandatory for all async connections with SQLAlchemy.
+# Using a sync driver (like psycopg2) will cause runtime errors (e.g., psycopg2 is not async).
+# Ensure you configure this variable in your .env file or deployment environment exactly as above.
+#
+# Critical for correct async DB engine & session creation.
 DB_URL = os.getenv('POSTGRES_URL')
 
 if not DB_URL:
